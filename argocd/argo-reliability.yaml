@@ -1,0 +1,28 @@
+# argo-reliability.yaml
+global:
+  # Setting limits prevents OOM (Out of Memory) kills on your nodes
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+server:
+  # Reliability: Ensures traffic only hits the UI when it's ready
+  readinessProbe:
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  livenessProbe:
+    initialDelaySeconds: 15
+    periodSeconds: 20
+
+controller:
+  # Reliability: Keeps the "Brain" of ArgoCD from hanging
+  readinessProbe:
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  livenessProbe:
+    initialDelaySeconds: 15
+    periodSeconds: 20
