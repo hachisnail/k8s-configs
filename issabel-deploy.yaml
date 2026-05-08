@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: issabel
-  namespace: default
 spec:
   replicas: 2
   selector:
@@ -14,37 +13,29 @@ spec:
         app: issabel
     spec:
       hostNetwork: true
-      # This ensures Kubernetes puts one pod on the Master and one on the Worker.
-      # Without this, both might try to land on the same node and fail due to Port 80 conflict.
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchExpressions:
-              - key: app
-                operator: In
-                values:
-                - issabel
-            topologyKey: "kubernetes.io/hostname"
+      # Bypasses the "Interactive" hang by providing a TTY
+      tty: true
+      stdin: true
+      initContainers:
+      - name: fix-system-files
+        image: busybox
+        command: ['sh', '-c', 'mkdir -p /mnt/etc/sysconfig && touch /mnt/etc/sysconfig/network']
+        volumeMounts:
+        - name: etc-dir
+          mountPath: /mnt/etc
       containers:
       - name: issabel
         image: renatosiqueira/issabel:latest
         securityContext:
           privileged: true 
-        # Adding limits prevents Issabel from crashing your 2GB worker node.
-        resources:
-          requests:
-            memory: "512Mi"
-            cpu: "250m"
-          limits:
-            memory: "1Gi"
-            cpu: "1000m"
         volumeMounts:
         - name: cgroups
           mountPath: /sys/fs/cgroup
           readOnly: true
         - name: run-dir
           mountPath: /run
+        - name: etc-dir
+          mountPath: /etc
       volumes:
       - name: cgroups
         hostPath:
@@ -52,3 +43,5 @@ spec:
       - name: run-dir
         hostPath:
           path: /run
+      - name: etc-dir
+        emptyDir: {} # This keeps the /etc fixes local to the pod
