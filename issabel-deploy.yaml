@@ -4,7 +4,7 @@ metadata:
   name: issabel
   namespace: default
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app: issabel
@@ -13,13 +13,12 @@ spec:
       labels:
         app: issabel
     spec:
-      # Use hostNetwork to avoid SIP/RTP NAT issues
       hostNetwork: true
       containers:
       - name: issabel
-        image: issabel/issabel:latest
+        image: renatosiqueira/issabel:latest  # Updated image
         securityContext:
-          privileged: true # Issabel needs this to manage Asterisk kernel modules
+          privileged: true
         resources:
           requests:
             memory: "512Mi"
