@@ -14,11 +14,24 @@ spec:
         app: issabel
     spec:
       hostNetwork: true
+      # This ensures Kubernetes puts one pod on the Master and one on the Worker.
+      # Without this, both might try to land on the same node and fail due to Port 80 conflict.
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - issabel
+            topologyKey: "kubernetes.io/hostname"
       containers:
       - name: issabel
-        image: renatosiqueira/issabel:latest  # Updated image
+        image: renatosiqueira/issabel:latest
         securityContext:
-          privileged: true
+          privileged: true 
+        # Adding limits prevents Issabel from crashing your 2GB worker node.
         resources:
           requests:
             memory: "512Mi"
@@ -26,8 +39,16 @@ spec:
           limits:
             memory: "1Gi"
             cpu: "1000m"
-        ports:
-        - containerPort: 80
-        - containerPort: 443
-        - containerPort: 5060
-          protocol: UDP
+        volumeMounts:
+        - name: cgroups
+          mountPath: /sys/fs/cgroup
+          readOnly: true
+        - name: run-dir
+          mountPath: /run
+      volumes:
+      - name: cgroups
+        hostPath:
+          path: /sys/fs/cgroup
+      - name: run-dir
+        hostPath:
+          path: /run
